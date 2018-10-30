@@ -1,0 +1,5 @@
+catcher.egg-info/PKG-INFO
+catcher.egg-info/SOURCES.txt
+catcher.egg-info/dependency_links.txt
+catcher.egg-info/requires.txt
+catcher.egg-info/top_level.txt
