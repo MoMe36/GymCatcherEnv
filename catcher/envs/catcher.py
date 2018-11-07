@@ -43,6 +43,33 @@ class Ball:
 
 		return position, speed
 
+class Ball2(Ball): 
+
+	def __init__(self, scale, max_distance = 0.3, radius = 0.02): 
+
+		max_x_speed = 7.
+		max_y_speed = 7.
+		min_y_speed = 5. 
+
+
+		x_pos = np.random.uniform(0.5-max_distance,0.5 + max_distance)
+		y_pos = np.random.uniform(0.4,0.95)
+		pos = np.array([x_pos, y_pos])
+		
+		velocity_x = np.random.uniform(0., max_x_speed) if pos[0] < 0.5 else np.random.uniform(-max_x_speed,0.)
+		velocity_y = np.random.uniform(min_y_speed,max_y_speed) if pos[1] < 0.5 else np.random.uniform(-1,0.)
+		velocity = np.array([velocity_x, velocity_y])
+		# pos = np.array([0.5, 0.95])
+				
+		self.radius = radius*scale 
+		self.scale = scale
+
+		self.body = pm.Body(10,100)
+		self.body.position = pos*scale 
+		self.body.velocity = velocity
+		self.shape = pm.Circle(self.body, self.radius, (0,0))
+		self.shape.collision_type = collision_ball_type
+
 class Robot: 
 
 	def __init__(self, nb_joints, joints_length, scale, space, max_torque = 0.1): 
@@ -326,7 +353,22 @@ class World(gym.Env):
 	def __str__(self): 
 		return '\t Catcher with obs_space {}, action_space {}'.format(self.observation_space.shape[0],self.action_space.shape[0])
 
-# world = World()
+class WorldWithSpeed(World): 
+
+	def __init__(self, nb_joints = 3, joints_length = 0.2, max_steps = 500, world_scale = 100.): 
+
+		super().__init__(nb_joints,joints_length,max_steps,world_scale) 
+
+	def add_ball(self): 
+
+		max_distance = 0.9*self.nb_joints*self.joints_length
+		self.ball = Ball2(self.scale, max_distance = max_distance)
+		self.space.add(self.ball.get_physics())
+
+
+
+
+# world = WorldWithSpeed()
 
 # for i in range(2000): 
 
@@ -335,6 +377,6 @@ class World(gym.Env):
 #     # world.step()
 #     # print(state)
 #     # print(r)
-#     input(state)
+
 #     world.render()
 #     if done: world.reset()

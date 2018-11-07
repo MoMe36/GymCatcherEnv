@@ -1,1 +1,1 @@
-from catcher.envs.catcher import World
+from catcher.envs.catcher import World, WorldWithSpeed
