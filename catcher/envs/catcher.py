@@ -72,9 +72,11 @@ class Robot:
 
 	def step(self, a): 
 
-		self.angles += np.clip(a[:-1],-self.max_torque,self.max_torque)
+		a = np.clip(a, -self.max_torque, self.max_torque)
+		self.angles += a[:-1]
 		self.angles = self.angles%(np.pi*2.)
-		# self.bar_rotation += a[-1]
+		self.bar_rotation += a[-1]
+		self.bar_rotation = self.bar_rotation%(np.pi*2.)
 
 		self.create_bar()
 
@@ -317,7 +319,12 @@ class World(gym.Env):
 		pg.draw.circle(self.screen,  (250, 250, 250), [int(ball_pos[0]), int(ball_pos[1])], 10,)
 		pg.draw.circle(self.screen,  (250, 15, 0), [int(ball_pos[0]), int(ball_pos[1])], 5,)
 
+	def __repr__(self): 
 
+		return 'Catcher with obs_space {}, action_space {}'.format(self.observation_space.shape[0],self.action_space.shape[0])
+
+	def __str__(self): 
+		return '\t Catcher with obs_space {}, action_space {}'.format(self.observation_space.shape[0],self.action_space.shape[0])
 
 # world = World()
 
