@@ -15,6 +15,32 @@ def flip_pg(pos):
     return [pos[0],  1. - pos[1]]
 
 
+def compute_jacobian_step(angles, length, error): 
+
+    current_angles = (angles.copy()).reshape(-1,1)
+
+    incs = np.hstack([np.cos(current_angles), np.sin(current_angles)])*length
+    incs = np.vstack([np.zeros((1,2)), incs])
+    positions = np.cumsum(incs, 0) + 0.5
+
+
+    axis = np.array([0,0,1]).astype(float)
+
+    end_effector_pos = positions[-1,:]
+    vectors = end_effector_pos - positions[:-1] 
+
+    jaco = np.zeros((3, current_angles.shape[0]))
+    for i,v in enumerate(vectors): 
+        result = np.cross(axis, v)
+        jaco[:,i] = result
+
+    error = np.hstack([error.reshape(-1), [0]])
+    error_magn = np.sqrt(np.sum(np.power(error,2)))
+
+    final_incs = np.dot(jaco.T, error/error_magn)
+
+    return final_incs, jaco 
+
 
 class Ball: 
 
@@ -116,6 +142,21 @@ class Robot:
 
 		return joints
 
+	def jaco_step(self, a): 
+
+		vec = a[:2]
+		incs, _ = compute_jacobian_step(self.angles, self.joints_length, vec)
+
+		incs = np.clip(incs, -self.max_torque, self.max_torque)
+		self.angles += incs 
+		self.angles = self.angles%(np.pi*2)
+		self.bar_rotation += a[-1]
+		self.bar_rotation = self.bar_rotation%(np.pi*2.)
+
+		self.create_bar()
+
+
+
 class Bar: 
 
 	def __init__(self, pos, rot, scale, space, length = 0.15): 
@@ -160,7 +201,7 @@ class World(gym.Env):
 		self.joints_length = joints_length
 		self.max_steps = max_steps
 
-		self.max_torque = 0.1
+		self.max_torque = 0.02
 		self.scale = world_scale
 
 		self.initialize_world()
@@ -365,18 +406,72 @@ class WorldWithSpeed(World):
 		self.ball = Ball2(self.scale, max_distance = max_distance)
 		self.space.add(self.ball.get_physics())
 
+class JacoWorld(World): 
+
+	def __init__(self, nb_joints = 3, joints_length = 0.2, max_steps = 500, world_scale = 100.): 
+
+		super().__init__(nb_joints,joints_length,max_steps,world_scale)
+
+	def initialize_world(self): 
+
+		self.space = pm.Space()
+		self.space.gravity = 0.,-10.
+		self.steps = 0 
+		
+
+		self.first_contact = False 
+		self.initialize_collisions()
+		self.robot = Robot(self.nb_joints, self.joints_length, self.scale, self.space, self.max_torque)
+		self.add_ball()
+		self.add_bar()
+
+		low_ac = -self.max_torque*np.ones((2))
+		high_ac = self.max_torque*np.ones((2))
+
+		# effector pos + bar rotation + ball position and speed + first contact 
+		low_obs = -50.*np.ones((2 + 1 + 4 + 1))
+		high_obs = -50.*np.ones((2 + 1 + 4 + 1))
+
+		self.observation_space = spaces.Box(low_obs, high_obs, dtype = np.float)
+		self.action_space = spaces.Box(low_ac, high_ac, dtype = np.float)
+
+	def observe(self):
+
+		ns, r, done, infos = super().observe()
+
+		# J'ai besoin de la position de l'effecteur, de l'orientation de la barre, des infos de la balle et du contact
+
+		effector_pos = self.robot.get_joints_pos().copy()[-1]
+		bar_rotation = self.robot.bar_rotation
+		ball_data = ns[-5:]		
+
+		ns = list(effector_pos) + [bar_rotation] + ball_data
+
+		return ns, r, done, infos
+
+	def step(self, action): 
+
+		self.robot.jaco_step(action)
+		self.update_bar()
+		self.space.step(0.02)
+
+		self.steps += 1 
+		return self.observe()
 
 
-
-# world = WorldWithSpeed()
-
+# world = JacoWorld()
+# print(world.observation_space.shape,world.action_space.shape)
+# target = np.random.uniform(0,1., (3))
 # for i in range(2000): 
 
-#     # state, r, done, info  = world.random_step()
-#     state, r, done, info  = world.random_step()
-#     # world.step()
-#     # print(state)
-#     # print(r)
 
-#     world.render()
-#     if done: world.reset()
+# 	ns, r, done, infos =  world.step(target)
+# 	# world.step()
+# 	# print(state)
+# 	# print(r)
+
+# 	world.render()
+# 	if done: 
+# 		world.reset()
+# 		target = np.random.uniform(-1.,1., (3))
+# 		print(target)
