@@ -425,8 +425,8 @@ class JacoWorld(World):
 		self.add_ball()
 		self.add_bar()
 
-		low_ac = -self.max_torque*np.ones((2))
-		high_ac = self.max_torque*np.ones((2))
+		low_ac = -self.max_torque*np.ones((3))
+		high_ac = self.max_torque*np.ones((3))
 
 		# effector pos + bar rotation + ball position and speed + first contact 
 		low_obs = -50.*np.ones((2 + 1 + 4 + 1))
@@ -459,19 +459,31 @@ class JacoWorld(World):
 		return self.observe()
 
 
-# world = JacoWorld()
-# print(world.observation_space.shape,world.action_space.shape)
+class JacoWithSpeed(JacoWorld): 
+
+	def __init__(self, nb_joints = 3, joints_length = 0.2, max_steps = 500, world_scale = 100.): 
+		super().__init__(nb_joints,joints_length,max_steps,world_scale)
+
+	def add_ball(self): 
+
+		max_distance = 0.9*self.nb_joints*self.joints_length
+		self.ball = Ball2(self.scale, max_distance = max_distance)
+		self.space.add(self.ball.get_physics())
+
+world = JacoWithSpeed()
+print(world.observation_space.shape,world.action_space.shape)
 # target = np.random.uniform(0,1., (3))
-# for i in range(2000): 
+for i in range(2000): 
 
 
-# 	ns, r, done, infos =  world.step(target)
-# 	# world.step()
-# 	# print(state)
-# 	# print(r)
+	ns, r, done, infos =  world.step(target)
+	# world.step()
+	# print(state)
+	# print(r)
 
-# 	world.render()
-# 	if done: 
-# 		world.reset()
-# 		target = np.random.uniform(-1.,1., (3))
-# 		print(target)
+	world.render()
+	if done: 
+		world.reset()
+		# target = np.random.uniform(-1.,1., (3))
+		target = - target
+		print(target)
