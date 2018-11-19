@@ -14,6 +14,16 @@ def vec2np(vec):
 def flip_pg(pos): 
     return [pos[0],  1. - pos[1]]
 
+def compute_segment_boundaries(center, length, angle): 
+
+	position = np.vstack([center.reshape(-1), center.reshape(-1)])
+	decal_x = np.array([1.,-1.])*length*0.5*np.cos(angle)
+	decal_y = np.array([1.,-1.])*length*0.5*np.sin(angle)
+	position[:,0] += decal_x
+	position[:,1] += decal_y
+
+	return position
+
 
 def compute_jacobian_step(angles, length, error): 
 
@@ -119,6 +129,7 @@ class Robot:
 
 		effector_pos = self.get_joints_pos()[-1]
 		self.bar = Bar(effector_pos, self.bar_rotation, self.scale, self.space)
+		self.bar.body.velocity *= 0.
 
 	def get_bar(self):
 
@@ -162,13 +173,14 @@ class Bar:
 
 	def __init__(self, pos, rot, scale, space, length = 0.15): 
 
-		self.body = pm.Body(body_type = pm.Body.STATIC)
-		position = np.vstack([pos.reshape(-1), pos.reshape(-1)])
+		# self.body = pm.Body(body_type = pm.Body.STATIC)
+		self.body = pm.Body(10,100)
+		self.body.angle = rot 
+		self.scale = scale 
 
-		decal_x = np.array([1.,-1.])*length*0.5*np.cos(rot)
-		decal_y = np.array([1.,-1.])*length*0.5*np.sin(rot)
-		position[:,0] += decal_x
-		position[:,1] += decal_y
+		position = compute_segment_boundaries(pos, length, rot) 
+
+		self.body.position = np.mean(position*self.scale, axis = 0) 
 
 		self.rot = rot 
 		self.length = length
@@ -177,14 +189,18 @@ class Bar:
 
 		self.draw_position = position 
 
-		self.shape = pm.Segment(space.static_body, self.phy_position[0], self.phy_position[1], 1)
+		# self.shape = pm.Segment(space.static_body, self.phy_position[0], self.phy_position[1], 1)
+		self.shape = pm.Poly.create_box(self.body, size = [self.length*self.scale, 3])
 		self.shape.collision_type = collision_bar_type
 
 	def get_physics(self):
-		return self.shape
+		return self.shape, self.body
 
 	def get_draw_infos(self): 
-		return self.draw_position.copy(), self.rot, self.length
+
+		pos = vec2np(self.body.position)/self.scale
+		positions = compute_segment_boundaries(pos, self.length, self.body.angle)
+		return positions
 
 
 
@@ -285,6 +301,8 @@ class World(gym.Env):
 
 		self.robot.step(action)
 		self.update_bar()
+
+		self.bar.body.velocity *= 0.
 		self.space.step(0.02)
 
 		self.steps += 1
@@ -293,10 +311,26 @@ class World(gym.Env):
 
 	def random_step(self): 
 
-		action = np.random.uniform(-self.max_torque,self.max_torque, (self.nb_joints+1))
-		action[-1] = np.random.uniform(-0.05,0.05)
-		self.robot.step(action)
+		action = np.random.uniform(-self.max_torque,self.max_torque, (self.nb_joints))
+		# action[-1] = np.random.uniform(-0.05,0.05)
+		
+		try: 
+			action = np.random.uniform(-self.max_torque,self.max_torque, (self.nb_joints+1))
+			action[-1] = np.random.uniform(-0.05,0.05)
+			self.robot.step(action)
+		except: 
+			pass 
+
+		try: 
+			action = np.random.uniform(-self.max_torque,self.max_torque, (self.nb_joints))
+			self.robot.step(action)
+		except: 
+			pass 
+
+
 		self.update_bar()
+
+		self.bar.body.velocity *= 0.
 		self.space.step(0.02)
 
 		self.steps += 1 
@@ -375,7 +409,7 @@ class World(gym.Env):
 			pg.draw.aaline(self.screen, (0, 250, 40), joints_position[i-1,:], joints_position[i,:], 1)
 
 
-		bar_params = self.bar.get_draw_infos()[0]
+		bar_params = self.bar.get_draw_infos()
 		bar_params[:,1] = 1.-bar_params[:,1]
 
 		pg.draw.aaline(self.screen, (230,50,150), bar_params[0,:]*self.size, bar_params[1,:]*self.size, 1)
@@ -473,12 +507,13 @@ class JacoWithSpeed(JacoWorld):
 		self.space.add(self.ball.get_physics())
 
 # world = JacoWithSpeed()
+# world = JacoWorld()
 # print(world.observation_space.shape,world.action_space.shape)
 # target = np.random.uniform(0,1., (3))
 # for i in range(2000): 
 
 
-# 	ns, r, done, infos =  world.step(target)
+# 	ns, r, done, infos =  world.random_step()
 # 	# world.step()
 # 	# print(state)
 # 	# print(r)
