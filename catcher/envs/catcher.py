@@ -73,9 +73,9 @@ class Ball2(Ball):
 
 	def __init__(self, scale, max_distance = 0.3, radius = 0.02): 
 
-		max_x_speed = 7.
-		max_y_speed = 7.
-		min_y_speed = 5. 
+		max_x_speed = 12.
+		max_y_speed = 12.
+		min_y_speed = 9. 
 
 
 		x_pos = np.random.uniform(0.5-max_distance,0.5 + max_distance)
@@ -85,6 +85,7 @@ class Ball2(Ball):
 		velocity_x = np.random.uniform(0., max_x_speed) if pos[0] < 0.5 else np.random.uniform(-max_x_speed,0.)
 		velocity_y = np.random.uniform(min_y_speed,max_y_speed) if pos[1] < 0.5 else np.random.uniform(-1,0.)
 		velocity = np.array([velocity_x, velocity_y])
+
 		# pos = np.array([0.5, 0.95])
 				
 		self.radius = radius*scale 
@@ -146,7 +147,7 @@ class Robot:
 
 		vec = a[:2]
 		incs, _ = compute_jacobian_step(self.angles, self.joints_length, vec)
-
+		a = np.clip(a, -self.max_torque, self.max_torque)
 		incs = np.clip(incs, -self.max_torque, self.max_torque)
 		self.angles += incs 
 		self.angles = self.angles%(np.pi*2)
@@ -332,6 +333,7 @@ class World(gym.Env):
 
 	def reset(self): 
 
+		self.robot = Robot(self.nb_joints, self.joints_length, self.scale, self.space, self.max_torque)
 		self.create_new_ball()
 		self.steps = 0 
 		self.first_contact = False 
@@ -470,20 +472,20 @@ class JacoWithSpeed(JacoWorld):
 		self.ball = Ball2(self.scale, max_distance = max_distance)
 		self.space.add(self.ball.get_physics())
 
-world = JacoWithSpeed()
-print(world.observation_space.shape,world.action_space.shape)
+# world = JacoWithSpeed()
+# print(world.observation_space.shape,world.action_space.shape)
 # target = np.random.uniform(0,1., (3))
-for i in range(2000): 
+# for i in range(2000): 
 
 
-	ns, r, done, infos =  world.step(target)
-	# world.step()
-	# print(state)
-	# print(r)
+# 	ns, r, done, infos =  world.step(target)
+# 	# world.step()
+# 	# print(state)
+# 	# print(r)
 
-	world.render()
-	if done: 
-		world.reset()
-		# target = np.random.uniform(-1.,1., (3))
-		target = - target
-		print(target)
+# 	world.render()
+# 	if done: 
+# 		world.reset()
+# 		# target = np.random.uniform(-1.,1., (3))
+# 		target = - target
+# 		print(target)
