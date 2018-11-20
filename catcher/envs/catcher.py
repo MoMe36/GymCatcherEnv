@@ -506,10 +506,31 @@ class JacoWithSpeed(JacoWorld):
 		self.ball = Ball2(self.scale, max_distance = max_distance)
 		self.space.add(self.ball.get_physics())
 
+
+class JacoSpeedChanger(JacoWithSpeed): 
+
+	def __init__(self, nb_joints = 3, joints_length = 0.2, max_steps = 500, world_scale = 100.): 
+		super().__init__(nb_joints,joints_length,max_steps,world_scale)
+
+	def add_ball(self): 
+
+		max_distance = 0.9*self.nb_joints*self.joints_length
+		self.ball = Ball2(self.scale, max_distance = max_distance)
+		self.space.add(self.ball.get_physics())
+
+	def reset(self): 
+
+		self.nb_joints = np.random.randint(3,6)
+		current_length = np.random.uniform(0.45,0.6)
+		self.joints_length = current_length/self.nb_joints
+		return super().reset()
+
 # world = JacoWithSpeed()
 # world = JacoWorld()
-# print(world.observation_space.shape,world.action_space.shape)
+# world = JacoSpeedChanger()
+# # print(world.observation_space.shape,world.action_space.shape)
 # target = np.random.uniform(0,1., (3))
+
 # for i in range(2000): 
 
 
