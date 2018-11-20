@@ -189,8 +189,8 @@ class Bar:
 
 		self.draw_position = position 
 
-		# self.shape = pm.Segment(space.static_body, self.phy_position[0], self.phy_position[1], 1)
-		self.shape = pm.Poly.create_box(self.body, size = [self.length*self.scale, 3])
+		self.shape = pm.Segment(space.static_body, self.phy_position[0], self.phy_position[1], 1)
+		# self.shape = pm.Poly.create_box(self.body, size = [self.length*self.scale, 3])
 		self.shape.collision_type = collision_bar_type
 
 	def get_physics(self):
