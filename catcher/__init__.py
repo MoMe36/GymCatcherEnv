@@ -11,3 +11,9 @@ register(id = 'catcher-v2',
 
 register(id = 'catcher-v3', 
 	entry_point = 'catcher.envs:JacoWithSpeed',)
+
+register(id = 'catcher-v4', 
+	entry_point = 'catcher.envs:JacoSpeedChanger',)
+
+register(id = 'catcher-v5', 
+	entry_point = 'catcher.envs:HalfJacoWithSpeed',)
