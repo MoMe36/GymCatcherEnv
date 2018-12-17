@@ -1,1 +1,1 @@
-from catcher.envs.catcher import World, WorldWithSpeed, JacoWorld, JacoWithSpeed, JacoSpeedChanger, HalfJacoWithSpeed
+from catcher.envs.catcher import World, WorldWithSpeed, JacoWorld, JacoWithSpeed, JacoSpeedChanger, HalfJacoWithSpeed, SpinupCatcher

@@ -17,3 +17,6 @@ register(id = 'catcher-v4',
 
 register(id = 'catcher-v5', 
 	entry_point = 'catcher.envs:HalfJacoWithSpeed',)
+
+register(id = 'catcher-v6', 
+	entry_point = 'catcher.envs:SpinupCatcher',)

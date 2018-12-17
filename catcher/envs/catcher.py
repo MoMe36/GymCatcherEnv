@@ -110,13 +110,31 @@ class Ball:
 
 		return position, speed
 
+	def set_position(self, pos): 
+
+		self.body.position = pos*self.scale
+
+	def set_speed(self, speed): 
+
+		self.body.velocity = speed
+
+	def set_position_and_speed(self,data): 
+
+		self.set_position(data[:2])
+		self.set_speed(data[2:])
+
+
 class Ball2(Ball): 
 
 	def __init__(self, scale, max_distance = 0.3, radius = 0.02): 
 
-		max_x_speed = 12.
-		max_y_speed = 12.
-		min_y_speed = 9. 
+		# max_x_speed = 12.
+		# max_y_speed = 12.
+		# min_y_speed = 9. 
+
+		max_x_speed = 3
+		max_y_speed = 3
+		min_y_speed = 2
 
 
 		x_pos = np.random.uniform(0.5-max_distance,0.5 + max_distance)
@@ -270,6 +288,16 @@ class World(gym.Env):
 
 		return 
 
+	def set_initial_config(self, data): 
+
+		self.robot.angles = data[:self.nb_joints] 
+		self.robot.bar_rotation = data[self.nb_joints + 1]
+
+		self.ball.set_position_and_speed(data[-4:])
+
+		obs = self.observe()[0]
+		return obs
+
 	def from_params(self, nb_joints, joints_length): 
 
 		self.nb_joints = nb_joints
@@ -397,7 +425,7 @@ class World(gym.Env):
 
 		if(self.first_contact): 
 			reward = ball_pos[1]
-			self.first_contact = False 
+			
 
 		if(ball_pos[1] <= 0.): 
 			done = True 
@@ -407,6 +435,12 @@ class World(gym.Env):
 			done = True 
 			reward = 1.
 
+		self.episode_reward += reward
+		self.latest_info="Contact: {}\nSteps:{}/{}\nReward:{}\nEpisode reward:{}".format(self.first_contact, self.steps,
+																						 self.max_steps,reward, self.episode_reward)
+		self.latest_info= self.latest_info.split('\n')
+		self.first_contact = False 
+
 		return state, reward, done, info  
 
 	def reset(self): 
@@ -415,6 +449,8 @@ class World(gym.Env):
 		self.create_new_ball()
 		self.steps = 0 
 		self.first_contact = False 
+
+		self.episode_reward = 0. 
 
 		return self.observe()[0]
 
@@ -436,6 +472,7 @@ class World(gym.Env):
 		self.size = np.array(size)
 		self.screen = pg.display.set_mode(np.array(size).astype(int))
 		self.clock = pg.time.Clock()
+		self.font = pg.font.SysFont('monospace', 15)
 
 		self.render_ready = True
 
@@ -466,6 +503,14 @@ class World(gym.Env):
 		pg.draw.circle(self.screen, (250, 15, 0), [int(ball_pos[0]), int(ball_pos[1])], 15, )
 		pg.draw.circle(self.screen,  (250, 250, 250), [int(ball_pos[0]), int(ball_pos[1])], 10,)
 		pg.draw.circle(self.screen,  (250, 15, 0), [int(ball_pos[0]), int(ball_pos[1])], 5,)
+
+		for num, info in enumerate(self.latest_info): 
+	            self.draw_text(info, (50,150 + num*15))
+       
+	def draw_text(self, text, position): 
+
+		label = self.font.render(text, 1, (255,255,255))
+		self.screen.blit(label, position)
 
 	def __repr__(self): 
 
@@ -619,25 +664,35 @@ class HalfJacoWithSpeed(WorldWithSpeed):
 		
 		return ns, r, done, infos
 
+class SpinupCatcher(World): 
+
+	def __init__(self, nb_joints = 3, joints_length = 0.2, max_steps = 500, world_scale = 100.): 
+
+		super().__init__(nb_joints,joints_length,max_steps,world_scale)
+
+	def observe(self): 
+
+		ns, r, done, infos = super().observe()
+		return np.array(ns), r, done, infos
 
 # world = JacoWithSpeed()
 # world.from_params(5,0.08)
-world = JacoWorld()
-world = JacoSpeedChanger()
-# # # print(world.observation_space.shape,world.action_space.shape)
-# # target = np.random.uniform(0,1., (3))
+# world = JacoWorld()
+# world = JacoSpeedChanger()
+# # # # print(world.observation_space.shape,world.action_space.shape)
+# # # target = np.random.uniform(0,1., (3))
 
-for i in range(2000): 
+# for i in range(2000): 
 
 
-	ns, r, done, infos =  world.step(np.array([0.5,0.4, -0.1]))
-	# world.step()
-	# print(state)
-	# print(r)
+# 	ns, r, done, infos =  world.step(np.array([0.5,0.4, -0.1]))
+# 	# world.step()
+# 	# print(state)
+# 	# print(r)
 
-	world.render()
-	if done: 
-		world.reset()
-		target = np.random.uniform(-1.,1., (3))
-		target = - target
-		print(target)
+# 	world.render()
+# 	if done: 
+# 		world.reset()
+# 		target = np.random.uniform(-1.,1., (3))
+# 		target = - target
+# 		print(target)
